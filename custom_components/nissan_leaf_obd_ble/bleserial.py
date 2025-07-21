@@ -24,6 +24,8 @@ class bleserial:
         self.client = None
         self._rx_buffer = bytearray()
         self._timeout = None
+        self._write_timeout = None
+        self._notifications_started = False
 
     async def _wait_for_data(self, size):
         while len(self._rx_buffer) < size:
@@ -92,6 +94,7 @@ class bleserial:
             await self.client.start_notify(
                 self.characteristic_uuid_read, self._notification_handler
             )
+            self._notifications_started = True
             logger.debug("Notifications started")
         except BleakError as e:
             logger.error("Failed to connect or start notifications: %s", e)
@@ -100,19 +103,25 @@ class bleserial:
     async def close(self):
         """Close the port."""
         if self.client:
-            try:
-                logger.debug(
-                    "Stopping notifications on characteristic UUID: %s",
-                    self.characteristic_uuid_read,
-                )
-                await self.client.stop_notify(self.characteristic_uuid_read)
-                logger.debug("Notifications stopped")
-                logger.debug("Disconnecting from device")
-                await self.client.disconnect()
-                logger.debug("Disconnected from device")
-            except BleakError as e:
-                logger.error("Failed to stop notifications or disconnect: %s", e)
-                raise
+            if self.client.is_connected:
+                try:
+                    if self._notifications_started:
+                        logger.debug(
+                            "Stopping notifications on characteristic UUID: %s",
+                            self.characteristic_uuid_read,
+                        )
+                        await self.client.stop_notify(self.characteristic_uuid_read)
+                        logger.debug("Notifications stopped")
+                    logger.debug("Disconnecting from device")
+                    await self.client.disconnect()
+                    logger.debug("Disconnected from device")
+                except BleakError as e:
+                    logger.warning(
+                        "Failed to stop notifications or disconnect: %s", e
+                    )
+            else:
+                logger.debug("Client already disconnected")
+            self.client = None
 
     async def write(self, data):
         """Write bytes."""
