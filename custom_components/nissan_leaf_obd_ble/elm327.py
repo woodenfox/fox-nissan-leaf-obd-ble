@@ -66,6 +66,11 @@ class ELM327:
     CHARACTERISTIC_UUID_READ = "0000ffe1-0000-1000-8000-00805f9b34fb"
     CHARACTERISTIC_UUID_WRITE = "0000ffe1-0000-1000-8000-00805f9b34fb"
 
+    # GATT UUIDs for Veepeak/Vgate style adapters
+    VEEPEAK_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb"
+    VEEPEAK_CHARACTERISTIC_UUID_READ = "0000fff1-0000-1000-8000-00805f9b34fb"
+    VEEPEAK_CHARACTERISTIC_UUID_WRITE = "0000fff1-0000-1000-8000-00805f9b34fb"
+
     # GATT UUIDs for devices using the Nordic UART Service
     NUS_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
     NUS_CHARACTERISTIC_UUID_READ = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
@@ -111,6 +116,10 @@ class ELM327:
             service_uuid = cls.NUS_SERVICE_UUID
             characteristic_uuid_read = cls.NUS_CHARACTERISTIC_UUID_READ
             characteristic_uuid_write = cls.NUS_CHARACTERISTIC_UUID_WRITE
+        elif cls.VEEPEAK_SERVICE_UUID in uuids:
+            service_uuid = cls.VEEPEAK_SERVICE_UUID
+            characteristic_uuid_read = cls.VEEPEAK_CHARACTERISTIC_UUID_READ
+            characteristic_uuid_write = cls.VEEPEAK_CHARACTERISTIC_UUID_WRITE
 
         self = cls(
             device,
