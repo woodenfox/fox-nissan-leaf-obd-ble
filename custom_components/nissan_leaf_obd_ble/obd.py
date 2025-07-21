@@ -201,7 +201,7 @@ class OBD:
             return OBDResponse()
 
         for m in messages:
-            if len(m.data) == 0 & ((m.raw == "NO DATA") | (m.raw == "CAN ERROR")):
+            if len(m.data) == 0 and ((m.raw == "NO DATA") or (m.raw == "CAN ERROR")):
                 logger.info("Vehicle not responding")
                 return OBDResponse()
 
