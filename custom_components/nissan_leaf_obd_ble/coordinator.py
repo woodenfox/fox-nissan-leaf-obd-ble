@@ -98,7 +98,13 @@ class NissanLeafObdBleDataUpdateCoordinator(DataUpdateCoordinator):
     @options.setter
     def options(self, options):
         """Set the configuration options."""
-        self._options = options
-        self._fast_poll_interval = options["fast_poll"]
-        self._slow_poll_interval = options["slow_poll"]
-        self._xs_poll_interval = options["xs_poll"]
+        defaults = {
+            "cache_values": False,
+            "fast_poll": int(FAST_POLL_INTERVAL.total_seconds()),
+            "slow_poll": int(SLOW_POLL_INTERVAL.total_seconds()),
+            "xs_poll": int(ULTRA_SLOW_POLL_INTERVAL.total_seconds()),
+        }
+        self._options = {**defaults, **(options or {})}
+        self._fast_poll_interval = self._options["fast_poll"]
+        self._slow_poll_interval = self._options["slow_poll"]
+        self._xs_poll_interval = self._options["xs_poll"]
