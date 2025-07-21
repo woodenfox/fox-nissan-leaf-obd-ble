@@ -16,7 +16,11 @@ from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN
 
-LOCAL_NAMES = {"OBDBLE"}
+# Device names to look for when automatically discovering compatible dongles.
+# Some OBD-II dongles, such as the Veepeak BLE model, do not use the
+# "OBDBLE" prefix in their Bluetooth name.  Include them here so that the
+# integration can discover and select them without manual intervention.
+LOCAL_NAMES = {"OBDBLE", "VEEPEAK"}
 
 
 class NissanLeafObdBleFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
