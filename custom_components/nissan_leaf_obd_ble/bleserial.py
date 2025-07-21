@@ -15,7 +15,13 @@ class bleserial:
 
     __buffer = bytearray()
 
-    def __init__(self, device: BLEDevice, service_uuid, characteristic_uuid_read, characteristic_uuid_write) -> None:
+    def __init__(
+        self,
+        device: BLEDevice,
+        service_uuid,
+        characteristic_uuid_read,
+        characteristic_uuid_write,
+    ) -> None:
         """Initialise."""
         self.device = device
         self.service_uuid = service_uuid
@@ -26,6 +32,8 @@ class bleserial:
         self._timeout = None
         self._write_timeout = None
         self._notifications_started = False
+        self._read_char = None
+        self._write_char = None
 
     async def _wait_for_data(self, size):
         while len(self._rx_buffer) < size:
@@ -87,13 +95,33 @@ class bleserial:
             logger.debug("Connecting to device: %s", self.device)
             await self.client.connect()
             logger.debug("Connected to device: %s", self.device)
+
+            services = await self.client.get_services()
+            service = services.get_service(self.service_uuid)
+            read_char = None
+            write_char = None
+            if service:
+                for char in service.characteristics:
+                    if (
+                        self.characteristic_uuid_read.lower() == char.uuid.lower()
+                        and read_char is None
+                    ):
+                        read_char = char
+                    if (
+                        self.characteristic_uuid_write.lower() == char.uuid.lower()
+                        and write_char is None
+                    ):
+                        write_char = char
+            if read_char is None or write_char is None:
+                raise BleakError("Unable to locate GATT characteristics")
+
             logger.debug(
                 "Starting notifications on characteristic UUID: %s",
                 self.characteristic_uuid_read,
             )
-            await self.client.start_notify(
-                self.characteristic_uuid_read, self._notification_handler
-            )
+            await self.client.start_notify(read_char.handle, self._notification_handler)
+            self._read_char = read_char
+            self._write_char = write_char
             self._notifications_started = True
             logger.debug("Notifications started")
         except BleakError as e:
@@ -105,20 +133,18 @@ class bleserial:
         if self.client:
             if self.client.is_connected:
                 try:
-                    if self._notifications_started:
+                    if self._notifications_started and self._read_char is not None:
                         logger.debug(
                             "Stopping notifications on characteristic UUID: %s",
                             self.characteristic_uuid_read,
                         )
-                        await self.client.stop_notify(self.characteristic_uuid_read)
+                        await self.client.stop_notify(self._read_char.handle)
                         logger.debug("Notifications stopped")
                     logger.debug("Disconnecting from device")
                     await self.client.disconnect()
                     logger.debug("Disconnected from device")
                 except BleakError as e:
-                    logger.warning(
-                        "Failed to stop notifications or disconnect: %s", e
-                    )
+                    logger.warning("Failed to stop notifications or disconnect: %s", e)
             else:
                 logger.debug("Client already disconnected")
             self.client = None
@@ -133,7 +159,7 @@ class bleserial:
                 self.characteristic_uuid_write,
                 data,
             )
-            await self.client.write_gatt_char(self.characteristic_uuid_write, data)
+            await self.client.write_gatt_char(self._write_char.handle, data)
             logger.debug("Data written")
         except BleakError as e:
             logger.error("Failed to write data: %s", e)
