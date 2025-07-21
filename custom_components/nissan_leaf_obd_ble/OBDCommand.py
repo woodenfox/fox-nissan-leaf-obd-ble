@@ -4,7 +4,7 @@
 # python-OBD: A python OBD-II serial module derived from pyobd         #
 #                                                                      #
 # Copyright 2004 Donour Sizemore (donour@uchicago.edu)                 #
-# Copyright 2009 Secons Ltd. (www.obdtester.com)                       #
+# Copyright 2009 SECONS Ltd. (www.obdtester.com)                       #
 # Copyright 2009 Peter J. Creath                                       #
 # Copyright 2016 Brendan Whitfield (brendan-w.com)                     #
 #                                                                      #
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class OBDCommand:
-    """Commmand object."""
+    """Command object."""
 
     def __init__(
         self,
