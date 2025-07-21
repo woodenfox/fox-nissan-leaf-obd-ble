@@ -5,7 +5,7 @@
 # python-OBD: A python OBD-II serial module derived from pyobd         #
 #                                                                      #
 # Copyright 2004 Donour Sizemore (donour@uchicago.edu)                 #
-# Copyright 2009 Secons Ltd. (www.obdtester.com)                       #
+# Copyright 2009 Seconds Ltd. (www.obdtester.com)                       #
 # Copyright 2009 Peter J. Creath                                       #
 # Copyright 2016 Brendan Whitfield (brendan-w.com)                     #
 #                                                                      #
@@ -66,16 +66,34 @@ class ELM327:
     CHARACTERISTIC_UUID_READ = "0000ffe1-0000-1000-8000-00805f9b34fb"
     CHARACTERISTIC_UUID_WRITE = "0000ffe1-0000-1000-8000-00805f9b34fb"
 
+    # GATT UUIDs for Veepeak/Vgate style adapters
+    VEEPEAK_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb"
+    VEEPEAK_CHARACTERISTIC_UUID_READ = "0000fff1-0000-1000-8000-00805f9b34fb"
+    VEEPEAK_CHARACTERISTIC_UUID_WRITE = "0000fff1-0000-1000-8000-00805f9b34fb"
+
+    # GATT UUIDs for devices using the Nordic UART Service
+    NUS_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+    NUS_CHARACTERISTIC_UUID_READ = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+    NUS_CHARACTERISTIC_UUID_WRITE = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
+
     def __init__(
         self,
         device: BLEDevice,
         timeout,
+        service_uuid: str = SERVICE_UUID,
+        characteristic_uuid_read: str = CHARACTERISTIC_UUID_READ,
+        characteristic_uuid_write: str = CHARACTERISTIC_UUID_WRITE,
     ) -> None:
         """Initialise."""
         self.__status = OBDStatus.NOT_CONNECTED
         self.__low_power = False
         self.timeout = timeout
-        self.__port = bleserial(device, self.SERVICE_UUID, self.CHARACTERISTIC_UUID_READ, self.CHARACTERISTIC_UUID_WRITE)
+        self.__port = bleserial(
+            device,
+            service_uuid,
+            characteristic_uuid_read,
+            characteristic_uuid_write,
+        )
         self.__protocol = ISO_15765_4_11bit_500k()
 
     @classmethod
@@ -88,7 +106,28 @@ class ELM327:
         start_low_power=False,
     ):
         """Initialize ELM327."""
-        self = cls(device, timeout)
+        uuids = [u.lower() for u in (device.metadata or {}).get("uuids", [])]
+
+        service_uuid = cls.SERVICE_UUID
+        characteristic_uuid_read = cls.CHARACTERISTIC_UUID_READ
+        characteristic_uuid_write = cls.CHARACTERISTIC_UUID_WRITE
+
+        if cls.NUS_SERVICE_UUID in uuids:
+            service_uuid = cls.NUS_SERVICE_UUID
+            characteristic_uuid_read = cls.NUS_CHARACTERISTIC_UUID_READ
+            characteristic_uuid_write = cls.NUS_CHARACTERISTIC_UUID_WRITE
+        elif cls.VEEPEAK_SERVICE_UUID in uuids:
+            service_uuid = cls.VEEPEAK_SERVICE_UUID
+            characteristic_uuid_read = cls.VEEPEAK_CHARACTERISTIC_UUID_READ
+            characteristic_uuid_write = cls.VEEPEAK_CHARACTERISTIC_UUID_WRITE
+
+        self = cls(
+            device,
+            timeout,
+            service_uuid,
+            characteristic_uuid_read,
+            characteristic_uuid_write,
+        )
 
         logger.info(
             "Initializing ELM327: PROTOCOL=%s",
@@ -153,7 +192,7 @@ class ELM327:
             await self.__error("ATCAF0 did not return 'OK'")
             return self
 
-        # by now, we've successfuly communicated with the ELM, but not the car
+        # by now, we've successfully communicated with the ELM, but not the car
         self.__status = OBDStatus.ELM_CONNECTED
 
         # -------------------------- AT RV (read volt) ------------------------
@@ -169,7 +208,7 @@ class ELM327:
             except ValueError:
                 await self.__error("Incorrect response from 'AT RV'")
                 return self
-            # by now, we've successfuly connected to the OBD socket
+            # by now, we've successfully connected to the OBD socket
             self.__status = OBDStatus.OBD_CONNECTED
 
         # try to communicate with the car, and load the correct protocol parser

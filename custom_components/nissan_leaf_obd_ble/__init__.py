@@ -41,7 +41,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             f"Could not find OBDBLE device with address {address}"
         )
 
-    api = NissanLeafObdBleApiClient(address)
+    api = NissanLeafObdBleApiClient(ble_device)
     coordinator = NissanLeafObdBleDataUpdateCoordinator(
         hass, address=address, api=api, options=entry.options
     )
